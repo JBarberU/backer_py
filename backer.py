@@ -10,15 +10,24 @@ rsync_key = "rsync"
 archive_key = "archive"
 backup_file = ".backer.json"
 
+def mkdir(host, dst):
+    # mkdir
+    mkdir_p = subprocess.Popen(["ssh", host, "mkdir -p {}".format(dst)])
+    mkdir_p.wait()
+
 def rsync(list):
   for l in list:
     src = l["src"]
     src_name = src.split("/")[-1]           # (filename)
     src_dir = "/".join(src.split("/")[:-1]) # equivalent to dirname(src)
+    host = l["dst"].split(":")[0]
+    dst = "{0}/{1}".format(l["dst"].split(":")[1], src_name)
 
     print("Backing up: {0} (rsync)".format(src_name))
 
-    p = subprocess.Popen(["rsync", "-avhq", l["src"], l["dst"]])
+    mkdir(host, dst)
+
+    p = subprocess.Popen(["rsync", "-avh", l["src"], l["dst"]])
     p.wait()
 
 def archive(list):
@@ -35,9 +44,7 @@ def archive(list):
     d = datetime.datetime.now()
     tar = "{0}.{1}{2}{3}_{4}{5}{6}.tar.gz".format(src_name, d.year, d.month, d.day, d.hour, d.minute, d.second)
 
-    # mkdir
-    mkdir_p = subprocess.Popen(["ssh", host, "mkdir -p {}".format(dst)])
-    mkdir_p.wait()
+    mkdir(host, dst)
 
     # tar to destination
     tar_p = subprocess.Popen(["tar", "czf", "-", src_name], cwd=src_dir, stdout=subprocess.PIPE)
